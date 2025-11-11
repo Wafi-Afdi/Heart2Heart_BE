@@ -3,6 +3,7 @@ package com.heart2heart.be_app.auth.user.controller;
 import com.heart2heart.be_app.auth.user.dto.AuthResponseDTO;
 import com.heart2heart.be_app.auth.user.dto.LoginDTO;
 import com.heart2heart.be_app.auth.user.dto.RegisterDTO;
+import com.heart2heart.be_app.auth.user.dto.RegisterRespons;
 import com.heart2heart.be_app.auth.user.model.User;
 import com.heart2heart.be_app.auth.user.repository.UserRepository;
 import com.heart2heart.be_app.auth.user.service.JWTService;
@@ -41,7 +42,7 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterDTO req) {
         if(userRepository.findByEmail(req.getEmail()).isPresent()) {
-            return new ResponseEntity<>("Email sudah diambil", HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(new RegisterRespons("Email sudah diambil", false), HttpStatus.BAD_REQUEST);
         }
 
         User newUser = new User();
@@ -53,7 +54,7 @@ public class AuthController {
 
         userRepository.save(newUser);
 
-        return new ResponseEntity<>("Register berhasil", HttpStatus.OK);
+        return new ResponseEntity<>(new RegisterRespons("Register berhasil", true), HttpStatus.OK);
     }
 
     @PostMapping("/login")
@@ -65,4 +66,5 @@ public class AuthController {
         String token = jwtService.generateToken(authentication.getName());
         return new ResponseEntity<>(new AuthResponseDTO(token), HttpStatus.OK);
     }
+
 }
