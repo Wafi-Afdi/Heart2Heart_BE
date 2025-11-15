@@ -16,8 +16,27 @@ services:
     networks:
       - heart2heart-network
 
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: 'heart2heart-rabbitmq'
+    restart: always
+    ports:
+      # Port for Spring Boot application (AMQP)
+      - "5672:5672"
+      # Port for Management Web UI
+      - "15672:15672"
+    environment:
+      # These credentials match your application.properties
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - heart2heart-network
+
 volumes:
   heart2heart-data:
+  rabbitmq-data:
 
 networks:
   heart2heart-network:

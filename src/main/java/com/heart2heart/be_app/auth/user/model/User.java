@@ -1,6 +1,7 @@
 package com.heart2heart.be_app.auth.user.model;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.heart2heart.be_app.ecgextraction.model.ECGSignalModel;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.GenericGenerator;
@@ -9,6 +10,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Getter

@@ -33,7 +33,6 @@ public class ProfileController {
     @GetMapping("/profile")
     public ResponseEntity<?> getProfile(@AuthenticationPrincipal User user) {
         if (user == null) {
-            // This is a safety check, though unlikely if security is configured correctly.
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not authenticated.");
         }
         UserProfileResponse profileResponse = new UserProfileResponse(
