@@ -41,6 +41,9 @@ public class FirebaseService {
                 .setTopic(topic)
                 .setNotification(notification)
                 .putData("type", "SOS")
+                .putData("userId", user.getId().toString())
+                .putData("name", user.getName())
+                .putData("report", "SOS")
                 .build();
 
         String response = FirebaseMessaging.getInstance().send(message);
@@ -62,6 +65,9 @@ public class FirebaseService {
                 .setTopic(topic)
                 .setNotification(notification)
                 .putData("type", report)
+                .putData("userId", user.getId().toString())
+                .putData("name", user.getName())
+                .putData("report", report)
                 .build();
         return FirebaseMessaging.getInstance().send(message);
     }

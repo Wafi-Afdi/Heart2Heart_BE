@@ -56,12 +56,11 @@ public class UserAccessController {
         accessModel.setObserverUser(observerUser);
         userAccessRepository.save(accessModel);
 
-        User userRes = new User();
-        userRes.setId(observerUser.getId());
+        ContactDTO userRes = new ContactDTO();
+        userRes.setUserId(observerUser.getId());
         userRes.setEmail(observerUser.getEmail());
-        userRes.setRole(observerUser.getRole());
         userRes.setName(observerUser.getName());
-        userRes.setPhoneNumber(observerUser.getPhoneNumber());
+        userRes.setPhone(observerUser.getPhoneNumber());
 
         return ResponseEntity.ok(userRes);
     }

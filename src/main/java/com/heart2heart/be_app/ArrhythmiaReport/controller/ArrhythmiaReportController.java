@@ -82,7 +82,7 @@ public class ArrhythmiaReportController {
         reportEntity.setSegment(null);
         reportEntity.setUser(user);
         reportEntity.setTimestamp(LocalDateTime.parse(diagnosisRequestDTO.getTs()));
-        reportEntity.setSegment(ecgSignalsService.getECGSegment(user, LocalDateTime.parse(diagnosisRequestDTO.getTs())));
+        reportEntity.setSegment(ecgSignalsService.getECGSegment(user, LocalDateTime.parse(diagnosisRequestDTO.getTs()), 6));
 
         UUID savedReport = reportService.saveNewReport(reportEntity);
 
@@ -90,6 +90,40 @@ public class ArrhythmiaReportController {
 
         return ResponseEntity.status(HttpStatus.OK).body("Diagnosis is being processed");
     }
+
+    @PostMapping("/generateTachyOrBrady")
+    public ResponseEntity<?> generateTachyOrBrady(@AuthenticationPrincipal User user, @RequestBody TachyOrBradyDTO tachyOrBradyDTO) {
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not authenticated.");
+        }
+
+        ArrhythmiaReportModel reportEntity = new ArrhythmiaReportModel();
+        reportEntity.setReportType(ArrhythmiaReportModel.ReportType.Unknown);
+        reportEntity.setSegment(null);
+        reportEntity.setUser(user);
+        reportEntity.setTimestamp(LocalDateTime.parse(tachyOrBradyDTO.getTs()));
+        switch (tachyOrBradyDTO.getType()) {
+            case "Tachycardia" -> {
+                reportEntity.setReportType(ArrhythmiaReportModel.ReportType.Tachycardia);
+                reportEntity.setSegment(ecgSignalsService.getECGSegment(user, LocalDateTime.parse(tachyOrBradyDTO.getTs()), 180));
+            }
+            case "Bradycardia" -> {
+                reportEntity.setReportType(ArrhythmiaReportModel.ReportType.Bradycardia);
+                reportEntity.setSegment(ecgSignalsService.getECGSegment(user, LocalDateTime.parse(tachyOrBradyDTO.getTs()), 180));
+            }
+            case "Asystole" -> {
+                reportEntity.setReportType(ArrhythmiaReportModel.ReportType.Asystole);
+                reportEntity.setSegment(ecgSignalsService.getECGSegment(user, LocalDateTime.parse(tachyOrBradyDTO.getTs()), 10));
+            }
+            default -> reportEntity.setReportType(ArrhythmiaReportModel.ReportType.Unknown);
+        }
+
+
+        UUID savedReport = reportService.saveNewReport(reportEntity);
+
+        return ResponseEntity.status(HttpStatus.OK).body("Diagnosis is saved");
+    }
+
     @GetMapping("/all")
     public ResponseEntity<?> getAllReportByUser(@AuthenticationPrincipal User user,
                                                 @RequestParam(name = "userId", required = true) String userId) {
@@ -139,6 +173,7 @@ public class ArrhythmiaReportController {
         reportResult.setTimestamp(report.getTimestamp());
         reportResult.setEcgSegment(report.getSegment());
         reportResult.setReportType(fromReportType(report.getReportType()));
+        reportResult.setReportId(report.getId().toString());
         reportRes.setReport(reportResult);
         reportRes.setIsEmpty(false);
 
@@ -155,6 +190,7 @@ public class ArrhythmiaReportController {
         data.setReportType(fromReportType(model.getReportType()));
         data.setEcgSegment(model.getSegment());
         data.setTimestamp(model.getTimestamp());
+        data.setReportId(model.getId().toString());
 
         return data;
     }

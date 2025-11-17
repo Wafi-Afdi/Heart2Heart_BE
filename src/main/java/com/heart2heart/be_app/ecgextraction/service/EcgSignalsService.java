@@ -35,7 +35,8 @@ public class EcgSignalsService {
     }
 
     @Transactional
-    public List<ECGSegment> getECGSegment(User user, LocalDateTime ts) {
+    public List<ECGSegment> getECGSegment(User user, LocalDateTime ts, Integer totalSeconds) {
+
         final LocalDateTime endTime = ts;
         final LocalDateTime startTime = ts.minusSeconds(6);
         List<ECGSignalModel> rawSignals = ecgSignalRepository

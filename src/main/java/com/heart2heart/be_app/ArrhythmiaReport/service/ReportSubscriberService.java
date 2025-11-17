@@ -59,7 +59,7 @@ public class ReportSubscriberService {
             arrhythmiaReportRepo.save(report);
 
             // Call FCM
-            firebaseService.sendReportNotification("/report", report.getUser(), classificationResult.diagnosis());
+            firebaseService.sendReportNotification("report", report.getUser(), classificationResult.diagnosis());
 
         } catch (Exception e) {
             log.error("Failed to save generate report: {}", reportId.toString());
