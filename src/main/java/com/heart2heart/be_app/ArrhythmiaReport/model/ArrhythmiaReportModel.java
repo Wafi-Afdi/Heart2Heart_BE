@@ -48,7 +48,7 @@ public class ArrhythmiaReportModel {
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
-    private List<ECGSegment> segment;
+    private ECGSegment segment;
 
     @Column(nullable = false)
     private LocalDateTime timestamp;

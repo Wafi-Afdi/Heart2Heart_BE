@@ -82,7 +82,7 @@ public class ArrhythmiaReportController {
         reportEntity.setSegment(null);
         reportEntity.setUser(user);
         reportEntity.setTimestamp(LocalDateTime.parse(diagnosisRequestDTO.getTs()));
-        reportEntity.setSegment(ecgSignalsService.getECGSegment(user, LocalDateTime.parse(diagnosisRequestDTO.getTs()), 6));
+        // reportEntity.setSegment(ecgSignalsService.getECGSegment(user, LocalDateTime.parse(diagnosisRequestDTO.getTs()), 20));
 
 
 
@@ -90,7 +90,7 @@ public class ArrhythmiaReportController {
 
         SaveSegmentDTO saveSegmentPub = new SaveSegmentDTO();
         saveSegmentPub.setTs(diagnosisRequestDTO.getTs());
-        saveSegmentPub.setTotalSecondToSave(6);
+        saveSegmentPub.setTotalSecondToSave(30);
         saveSegmentPub.setReportId(savedReport.toString());
         saveSegmentPub.setUserId(user.getId().toString());
 

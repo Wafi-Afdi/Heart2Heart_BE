@@ -35,25 +35,22 @@ public class EcgSignalsService {
     }
 
     @Transactional
-    public List<ECGSegment> getECGSegment(User user, LocalDateTime ts, Integer totalSeconds) {
+    public ECGSegment getECGSegment(User user, LocalDateTime ts, Integer totalSeconds) {
 
         LocalDateTime endTime = ts;
-        LocalDateTime startTime = ts.minusSeconds(6);
+        LocalDateTime startTime = ts.minusSeconds(totalSeconds);
         List<ECGSignalModel> rawSignals = ecgSignalRepository
                 .findECGRecordsWithRangeTime(user.getId(), startTime, endTime)
                 .orElse(Collections.emptyList());
 
-        List<ECGSegment> segmentDTOs = rawSignals.stream()
-                .map(model -> {
-                    // Use setters as requested:
-                    ECGSegment segment = new ECGSegment();
-                    segment.setSignal(model.getSignal());
-                    segment.setAsystole(model.getAsystole());
-                    segment.setRPeak(model.getRPeak());
-                    segment.setTs(model.getTimestamp());
-                    return segment;
-                })
-                .collect(Collectors.toList());
+        ECGSegment segmentDTOs = new ECGSegment();
+        segmentDTOs.setStart(startTime);
+        segmentDTOs.setEnd(endTime);
+        segmentDTOs.setUserId(null);
+
+        segmentDTOs.setSignal(rawSignals.stream()
+                .map(ECGSignalModel::getSignal)
+                .collect(Collectors.toList()));
 
         return segmentDTOs;
     }

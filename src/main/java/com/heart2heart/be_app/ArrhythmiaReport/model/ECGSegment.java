@@ -6,14 +6,14 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class ECGSegment {
     private String userId;
-    private Float signal;
-    private Boolean asystole;
-    private Boolean rPeak;
-    private LocalDateTime ts;
+    private List<Float> signal;
+    private LocalDateTime start;
+    private LocalDateTime end;
 }

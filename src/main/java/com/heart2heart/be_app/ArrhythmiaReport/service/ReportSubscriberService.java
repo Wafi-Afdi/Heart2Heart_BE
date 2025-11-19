@@ -1,8 +1,10 @@
 package com.heart2heart.be_app.ArrhythmiaReport.service;
 
 import com.heart2heart.be_app.ArrhythmiaReport.dto.ArrhythmiaReport;
+import com.heart2heart.be_app.ArrhythmiaReport.dto.EcgListDTO;
 import com.heart2heart.be_app.ArrhythmiaReport.dto.SaveSegmentDTO;
 import com.heart2heart.be_app.ArrhythmiaReport.model.ArrhythmiaReportModel;
+import com.heart2heart.be_app.ArrhythmiaReport.model.ECGSegment;
 import com.heart2heart.be_app.ArrhythmiaReport.repository.ArrhythmiaReportRepo;
 import com.heart2heart.be_app.auth.user.model.User;
 import com.heart2heart.be_app.auth.user.repository.UserRepository;
@@ -20,6 +22,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class ReportSubscriberService {
@@ -57,26 +60,36 @@ public class ReportSubscriberService {
                 report = reportsOpt.get();
             }
 
-            ArrhythmiaReport reportRequestDTO = new ArrhythmiaReport();
-            reportRequestDTO.setReportType(fromReportType(report.getReportType()));
-            reportRequestDTO.setEcgSegment(report.getSegment());
-            reportRequestDTO.setTimestamp(report.getTimestamp());
+            EcgListDTO reportRequestDTO = new EcgListDTO();
+            reportRequestDTO.setEcgSignal(report.getSegment().getSignal());
 
             // Call API
-            // var classificationResult = classifierEndpointService.processArrhythmiaAnalysis(reportRequestDTO);
+            var classificationResult = classifierEndpointService.processArrhythmiaAnalysis(reportRequestDTO);
 
-            // report.setReportType(fromString(classificationResult.diagnosis()));
+            report.setReportType(fromDiagnosis(classificationResult.result()));
 
-            Thread.sleep(3000);
+            //Thread.sleep(3000);
 
-            report.setReportType(ArrhythmiaReportModel.ReportType.AFib);
+            // report.setReportType(ArrhythmiaReportModel.ReportType.AFib);
+
+            String notificationReport = "Normal Rhythm";
+            if (report.getReportType() == ArrhythmiaReportModel.ReportType.Normal) {
+
+            } else if (report.getReportType() == ArrhythmiaReportModel.ReportType.VT) {
+                notificationReport = "Ventricular Tachycardia";
+            } else if (report.getReportType() == ArrhythmiaReportModel.ReportType.VFib) {
+                notificationReport = "Ventricular Fibrillation";
+            } else if (report.getReportType() == ArrhythmiaReportModel.ReportType.AFib) {
+                notificationReport = "Atrial Fibrillation";
+            }
 
             arrhythmiaReportRepo.save(report);
 
             // Call FCM
-            firebaseService.sendReportNotification("report", report.getUser(), "Afib");
+            firebaseService.sendReportNotification("report", report.getUser(), notificationReport);
 
         } catch (Exception e) {
+            e.printStackTrace();
             log.error("Failed to save generate report: {}", reportId.toString());
         }
     }
@@ -98,6 +111,9 @@ public class ReportSubscriberService {
 
             report.setSegment(ecgSignalsService.getECGSegment(user, LocalDateTime.parse(saveSegmentDTO.getTs()), saveSegmentDTO.getTotalSecondToSave()));
 
+
+            arrhythmiaReportRepo.save(report);
+
             if (report.getReportType() != ArrhythmiaReportModel.ReportType.Asystole
                     && report.getReportType() != ArrhythmiaReportModel.ReportType.Bradycardia
                     && report.getReportType() != ArrhythmiaReportModel.ReportType.Tachycardia
@@ -105,7 +121,6 @@ public class ReportSubscriberService {
                 reportPublisherService.PublishReportIdToBeClassified(UUID.fromString(saveSegmentDTO.getReportId()));
             }
 
-            arrhythmiaReportRepo.save(report);
 
         } catch (Exception e) {
             log.error("Failed to save generate report: {}", saveSegmentDTO.getReportId());
@@ -144,6 +159,16 @@ public class ReportSubscriberService {
             case "Tachycardia" -> ArrhythmiaReportModel.ReportType.Tachycardia;
             case "Asystole" -> ArrhythmiaReportModel.ReportType.Asystole;
             case "Normal Rhythm" -> ArrhythmiaReportModel.ReportType.Normal;
+            default -> ArrhythmiaReportModel.ReportType.Unknown;
+        };
+    }
+
+    private ArrhythmiaReportModel.ReportType fromDiagnosis(String input) {
+        return switch (input) {
+            case "normal" -> ArrhythmiaReportModel.ReportType.Normal;
+            case "afib" -> ArrhythmiaReportModel.ReportType.AFib;
+            case "vt" -> ArrhythmiaReportModel.ReportType.VT;
+            case "vf" -> ArrhythmiaReportModel.ReportType.VFib;
             default -> ArrhythmiaReportModel.ReportType.Unknown;
         };
     }

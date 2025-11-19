@@ -1,11 +1,12 @@
 package com.heart2heart.be_app.ArrhythmiaReport.service;
 
 import com.heart2heart.be_app.ArrhythmiaReport.dto.ArrhythmiaReport;
+import com.heart2heart.be_app.ArrhythmiaReport.dto.EcgListDTO;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
-record ArrhythmiaAnalysisResponse(String analysisId, String diagnosis, Float confidence) {}
+record ArrhythmiaAnalysisResponse(String result) {}
 
 @Service
 public class ClassifierEndpointService {
@@ -16,8 +17,8 @@ public class ClassifierEndpointService {
     }
 
 
-    public ArrhythmiaAnalysisResponse processArrhythmiaAnalysis(ArrhythmiaReport report) {
-        String resourcePath = "/analyze-arrhythmia";
+    public ArrhythmiaAnalysisResponse processArrhythmiaAnalysis(EcgListDTO report) {
+        String resourcePath = "/generate-diagnosis";
         Mono<ArrhythmiaAnalysisResponse> monoResponse = classifierWebClient.post()
                 .uri(resourcePath)
                 .bodyValue(report)

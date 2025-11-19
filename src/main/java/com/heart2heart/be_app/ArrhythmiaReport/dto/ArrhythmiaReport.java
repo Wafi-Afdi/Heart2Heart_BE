@@ -10,6 +10,6 @@ import java.util.List;
 public class ArrhythmiaReport {
     private String reportId;
     private String reportType;
-    private List<ECGSegment> ecgSegment;
+    private ECGSegment ecgSegment;
     private LocalDateTime timestamp;
 }
