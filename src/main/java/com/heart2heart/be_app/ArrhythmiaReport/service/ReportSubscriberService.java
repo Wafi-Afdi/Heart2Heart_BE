@@ -1,11 +1,15 @@
 package com.heart2heart.be_app.ArrhythmiaReport.service;
 
 import com.heart2heart.be_app.ArrhythmiaReport.dto.ArrhythmiaReport;
+import com.heart2heart.be_app.ArrhythmiaReport.dto.SaveSegmentDTO;
 import com.heart2heart.be_app.ArrhythmiaReport.model.ArrhythmiaReportModel;
 import com.heart2heart.be_app.ArrhythmiaReport.repository.ArrhythmiaReportRepo;
+import com.heart2heart.be_app.auth.user.model.User;
 import com.heart2heart.be_app.auth.user.repository.UserRepository;
 import com.heart2heart.be_app.config.RabbitMQConfig;
+import com.heart2heart.be_app.ecgextraction.service.EcgSignalsService;
 import com.heart2heart.be_app.firebase.FirebaseService;
+import jakarta.persistence.EntityManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -13,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -24,13 +29,19 @@ public class ReportSubscriberService {
     private final ReportService reportService;
     private final ArrhythmiaReportRepo arrhythmiaReportRepo;
     private final ClassifierEndpointService classifierEndpointService;
+    private final ReportPublisherService reportPublisherService;
+    private final EcgSignalsService ecgSignalsService;
+    private final EntityManager entityManager;
 
     @Autowired
-    public ReportSubscriberService(FirebaseService firebaseService, ReportService reportService, ArrhythmiaReportRepo arrhythmiaReportRepo, ClassifierEndpointService classifierEndpointService) {
+    public ReportSubscriberService(FirebaseService firebaseService, ReportService reportService, ArrhythmiaReportRepo arrhythmiaReportRepo, ClassifierEndpointService classifierEndpointService, ReportPublisherService reportPublisherService, EcgSignalsService ecgSignalsService, EntityManager entityManager) {
         this.firebaseService = firebaseService;
         this.reportService = reportService;
         this.arrhythmiaReportRepo = arrhythmiaReportRepo;
         this.classifierEndpointService = classifierEndpointService;
+        this.reportPublisherService = reportPublisherService;
+        this.ecgSignalsService = ecgSignalsService;
+        this.entityManager = entityManager;
     }
 
     @RabbitListener(queues = RabbitMQConfig.REPORT_QUEUE_NAME)
@@ -52,17 +63,52 @@ public class ReportSubscriberService {
             reportRequestDTO.setTimestamp(report.getTimestamp());
 
             // Call API
-            var classificationResult = classifierEndpointService.processArrhythmiaAnalysis(reportRequestDTO);
+            // var classificationResult = classifierEndpointService.processArrhythmiaAnalysis(reportRequestDTO);
 
-            report.setReportType(fromString(classificationResult.diagnosis()));
+            // report.setReportType(fromString(classificationResult.diagnosis()));
+
+            Thread.sleep(3000);
+
+            report.setReportType(ArrhythmiaReportModel.ReportType.AFib);
 
             arrhythmiaReportRepo.save(report);
 
             // Call FCM
-            firebaseService.sendReportNotification("report", report.getUser(), classificationResult.diagnosis());
+            firebaseService.sendReportNotification("report", report.getUser(), "Afib");
 
         } catch (Exception e) {
             log.error("Failed to save generate report: {}", reportId.toString());
+        }
+    }
+
+    @RabbitListener(queues = RabbitMQConfig.SAVE_SEGMENT_QUEUE_NAME)
+    public void subscribeSaveSegment(SaveSegmentDTO saveSegmentDTO) {
+        try {
+            Optional<ArrhythmiaReportModel> reportsOpt;
+            ArrhythmiaReportModel report;
+            reportsOpt = arrhythmiaReportRepo.getReportById(UUID.fromString(saveSegmentDTO.getReportId()));
+            if (reportsOpt.isEmpty()) {
+                log.error("Failed to find report: {}", saveSegmentDTO.getReportId());
+                return;
+            } else {
+                report = reportsOpt.get();
+            }
+
+            User user = entityManager.getReference(User.class, UUID.fromString(saveSegmentDTO.getUserId()));
+
+            report.setSegment(ecgSignalsService.getECGSegment(user, LocalDateTime.parse(saveSegmentDTO.getTs()), saveSegmentDTO.getTotalSecondToSave()));
+
+            if (report.getReportType() != ArrhythmiaReportModel.ReportType.Asystole
+                    && report.getReportType() != ArrhythmiaReportModel.ReportType.Bradycardia
+                    && report.getReportType() != ArrhythmiaReportModel.ReportType.Tachycardia
+            ) {
+                reportPublisherService.PublishReportIdToBeClassified(UUID.fromString(saveSegmentDTO.getReportId()));
+            }
+
+            arrhythmiaReportRepo.save(report);
+
+        } catch (Exception e) {
+            log.error("Failed to save generate report: {}", saveSegmentDTO.getReportId());
         }
     }
 

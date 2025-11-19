@@ -125,7 +125,7 @@ public class BPMDataController {
     private BPMDataDTO convertBPMEntityToDTO(BPMDataModel bpmData) {
         BPMDataDTO bpmDataDTO = new BPMDataDTO();
         bpmDataDTO.setBpm(bpmData.getBpm());
-        bpmDataDTO.setTs(bpmDataDTO.getTs());
+        bpmDataDTO.setTs(bpmData.getTimestamp().toString());
 
         return bpmDataDTO;
     }

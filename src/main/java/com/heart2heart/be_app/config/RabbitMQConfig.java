@@ -23,6 +23,10 @@ public class RabbitMQConfig {
     public static final String REPORT_QUEUE_NAME = "report_data_queue";
     public static final String REPORT_ROUTING_KEY = "report.data.new";
 
+    public static final String SAVE_SEGMENT_EXCHANGE_NAME = "save_segment_exchange";
+    public static final String SAVE_SEGMENT_QUEUE_NAME = "save_segment_queue";
+    public static final String SAVE_SEGMENT_ROUTING_KEY = "save.segment.new";
+
     @Bean
     public TopicExchange ecgExchange() {
         return new TopicExchange(ECG_EXCHANGE_NAME);
@@ -39,6 +43,11 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    public TopicExchange saveSegmentExchange() {
+        return new TopicExchange(SAVE_SEGMENT_EXCHANGE_NAME);
+    }
+
+    @Bean
     public Queue ecgSignalsQueue() {
         return new Queue(ECG_QUEUE_NAME, true); // durable=true
     }
@@ -51,6 +60,11 @@ public class RabbitMQConfig {
     @Bean
     public Queue reportDataQueue() {
         return new Queue(REPORT_QUEUE_NAME, true); // durable=true
+    }
+
+    @Bean
+    public Queue saveSegmentQueue() {
+        return new Queue(SAVE_SEGMENT_QUEUE_NAME, true); // durable=true
     }
 
     @Bean
@@ -72,6 +86,13 @@ public class RabbitMQConfig {
         return BindingBuilder.bind(reportDataQueue)
                 .to(reportExchange)
                 .with(REPORT_ROUTING_KEY);
+    }
+
+    @Bean
+    public Binding bindingSegment(Queue saveSegmentQueue, TopicExchange saveSegmentExchange) {
+        return BindingBuilder.bind(saveSegmentQueue)
+                .to(saveSegmentExchange)
+                .with(SAVE_SEGMENT_ROUTING_KEY);
     }
 
     @Bean

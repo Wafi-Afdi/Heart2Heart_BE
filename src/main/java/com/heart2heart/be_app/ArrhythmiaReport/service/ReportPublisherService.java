@@ -1,5 +1,6 @@
 package com.heart2heart.be_app.ArrhythmiaReport.service;
 
+import com.heart2heart.be_app.ArrhythmiaReport.dto.SaveSegmentDTO;
 import com.heart2heart.be_app.config.RabbitMQConfig;
 import com.heart2heart.be_app.ecgextraction.service.BpmPublisher;
 import org.slf4j.Logger;
@@ -25,6 +26,16 @@ public class ReportPublisherService {
                 RabbitMQConfig.REPORT_EXCHANGE_NAME,
                 RabbitMQConfig.REPORT_ROUTING_KEY,
                 id
+        );
+    }
+
+    public void saveSegmentReport(SaveSegmentDTO saveSegmentDTO) {
+        log.info("Saving segment id: {}", saveSegmentDTO.getReportId());
+
+        rabbitTemplate.convertAndSend(
+                RabbitMQConfig.SAVE_SEGMENT_EXCHANGE_NAME,
+                RabbitMQConfig.SAVE_SEGMENT_ROUTING_KEY,
+                saveSegmentDTO
         );
     }
 }

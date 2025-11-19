@@ -63,7 +63,14 @@ public class AuthController {
                 new UsernamePasswordAuthenticationToken(req.getEmail(), req.getPassword())
         );
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        String token = jwtService.generateToken(authentication.getName());
+        User user = userRepository.findByEmail(req.getEmail()).orElse(null);
+
+        String token = null;
+        if (user != null) {
+            token = jwtService.generateToken(authentication.getName(), user.getName());
+        } else {
+            token = jwtService.generateToken(authentication.getName(), "Unknown");
+        }
         return new ResponseEntity<>(new AuthResponseDTO(token), HttpStatus.OK);
     }
 

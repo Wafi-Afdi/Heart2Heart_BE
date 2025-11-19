@@ -23,9 +23,10 @@ public class JWTService {
         return Keys.hmacShaKeyFor(JWT_SECRET.getBytes());
     }
 
-    public String generateToken(String username) {
+    public String generateToken(String username, String name) {
         return Jwts.builder()
                 .setSubject(username)
+                .claim("name", name)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // 10 hours
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
@@ -39,6 +40,15 @@ public class JWTService {
                 .parseClaimsJws(token)
                 .getBody()
                 .getSubject();
+    }
+
+    public String extractName(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .get("name", String.class); // Get the custom claim by key
     }
 
     public boolean isTokenValid(String token, String username) {
