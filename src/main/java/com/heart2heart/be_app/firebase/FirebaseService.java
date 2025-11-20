@@ -52,6 +52,29 @@ public class FirebaseService {
         return true;
     }
 
+    public Boolean sendSOSNotificationToTopic2(String username, String id) throws FirebaseMessagingException {
+        String title = String.format("%s has sent SOS Signal", username);
+        String body = String.format("Please reach the person immediately");
+        Notification notification = Notification.builder()
+                .setTitle(title)
+                .setBody(body)
+                .build();
+
+        Message message = Message.builder()
+                .setTopic("SOS")
+                .setNotification(notification)
+                .putData("type", "SOS")
+                .putData("userId", id)
+                .putData("name", username)
+                .putData("report", "SOS")
+                .build();
+
+        String response = FirebaseMessaging.getInstance().send(message);
+
+
+        return true;
+    }
+
     public String sendReportNotification(String topic, User user, String report) throws FirebaseMessagingException {
         String title = String.format("%s has been detected with %s", user.getName(), report);
         String body = String.format("Please check on the person.");
@@ -67,6 +90,26 @@ public class FirebaseService {
                 .putData("type", report)
                 .putData("userId", user.getId().toString())
                 .putData("name", user.getName())
+                .putData("report", report)
+                .build();
+        return FirebaseMessaging.getInstance().send(message);
+    }
+
+    public String sendReportNotification2(String username, String userId, String report) throws FirebaseMessagingException {
+        String title = String.format("%s has been detected with %s", userId, report);
+        String body = String.format("Please check on the person");
+
+        Notification notification = Notification.builder()
+                .setTitle(title)
+                .setBody(body)
+                .build();
+
+        Message message = Message.builder()
+                .setTopic("report")
+                .setNotification(notification)
+                .putData("type", report)
+                .putData("userId", username)
+                .putData("name", userId)
                 .putData("report", report)
                 .build();
         return FirebaseMessaging.getInstance().send(message);

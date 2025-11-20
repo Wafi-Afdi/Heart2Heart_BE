@@ -3,6 +3,7 @@ package com.heart2heart.be_app.LiveECG.controller;
 import com.heart2heart.be_app.LiveECG.dto.ArrhytmiaReportWsDTO;
 import com.heart2heart.be_app.LiveECG.dto.LiveDataDTO;
 import com.heart2heart.be_app.LiveECG.dto.LiveLocationDTO;
+import com.heart2heart.be_app.LiveECG.dto.UserStatusDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,6 +50,13 @@ public class WebsocketController {
         log.info("LIVE DATA received from [{}]: {}", principal.getName(), payload.getEcgList().toString());
         messagingTemplate.convertAndSend("/topic/liveData", payload);
     }
+
+    @MessageMapping("/user")
+    public void receiveUser(UserStatusDTO payload, Principal principal) {
+        log.info("Use status received from [{}]: {}", principal.getName(), payload.toString());
+        messagingTemplate.convertAndSend("/topic/user", payload);
+    }
+
 
     @MessageMapping("/location")
     public void receiveLocationData(LiveLocationDTO payload, Principal principal) {

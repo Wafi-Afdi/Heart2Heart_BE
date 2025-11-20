@@ -54,7 +54,9 @@ public class ArrhythmiaReportController {
         }
 
         try {
-            firebaseService.sendSOSNotificationToTopic("SOS", user, sosRequestDTO);
+            // firebaseService.sendSOSNotificationToTopic("SOS", user, sosRequestDTO);
+
+            reportPublisherService.sendNotification("SOS", user, "SOS");
 
             ArrhythmiaReportModel reportEntity = new ArrhythmiaReportModel();
             reportEntity.setReportType(ArrhythmiaReportModel.ReportType.SOS);
@@ -64,8 +66,6 @@ public class ArrhythmiaReportController {
 
             arrhythmiaReportRepo.save(reportEntity);
             return ResponseEntity.status(HttpStatus.OK).body("SOS sent");
-        } catch (FirebaseMessagingException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Firebase error");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An internal error occurred.");
         }
@@ -90,7 +90,7 @@ public class ArrhythmiaReportController {
 
         SaveSegmentDTO saveSegmentPub = new SaveSegmentDTO();
         saveSegmentPub.setTs(diagnosisRequestDTO.getTs());
-        saveSegmentPub.setTotalSecondToSave(30);
+        saveSegmentPub.setTotalSecondToSave(24);
         saveSegmentPub.setReportId(savedReport.toString());
         saveSegmentPub.setUserId(user.getId().toString());
 
@@ -120,6 +120,7 @@ public class ArrhythmiaReportController {
                 saveSegmentPub.setReportId(savedReport.toString());
                 saveSegmentPub.setUserId(user.getId().toString());
                 reportPublisherService.saveSegmentReport(saveSegmentPub);
+                reportPublisherService.sendNotification("report", user, "Tachycardia");
             }
             case "Bradycardia" -> {
                 reportEntity.setReportType(ArrhythmiaReportModel.ReportType.Bradycardia);
@@ -129,6 +130,7 @@ public class ArrhythmiaReportController {
                 saveSegmentPub.setReportId(savedReport.toString());
                 saveSegmentPub.setUserId(user.getId().toString());
                 reportPublisherService.saveSegmentReport(saveSegmentPub);
+                reportPublisherService.sendNotification("report", user, "Bradycardia");
             }
             case "Asystole" -> {
                 reportEntity.setReportType(ArrhythmiaReportModel.ReportType.Asystole);
@@ -138,6 +140,7 @@ public class ArrhythmiaReportController {
                 saveSegmentPub.setReportId(savedReport.toString());
                 saveSegmentPub.setUserId(user.getId().toString());
                 reportPublisherService.saveSegmentReport(saveSegmentPub);
+                reportPublisherService.sendNotification("report", user, "Asystole");
             }
             default -> reportEntity.setReportType(ArrhythmiaReportModel.ReportType.Unknown);
         }

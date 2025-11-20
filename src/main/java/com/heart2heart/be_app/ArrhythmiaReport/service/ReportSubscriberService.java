@@ -1,8 +1,6 @@
 package com.heart2heart.be_app.ArrhythmiaReport.service;
 
-import com.heart2heart.be_app.ArrhythmiaReport.dto.ArrhythmiaReport;
-import com.heart2heart.be_app.ArrhythmiaReport.dto.EcgListDTO;
-import com.heart2heart.be_app.ArrhythmiaReport.dto.SaveSegmentDTO;
+import com.heart2heart.be_app.ArrhythmiaReport.dto.*;
 import com.heart2heart.be_app.ArrhythmiaReport.model.ArrhythmiaReportModel;
 import com.heart2heart.be_app.ArrhythmiaReport.model.ECGSegment;
 import com.heart2heart.be_app.ArrhythmiaReport.repository.ArrhythmiaReportRepo;
@@ -17,9 +15,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -35,9 +35,10 @@ public class ReportSubscriberService {
     private final ReportPublisherService reportPublisherService;
     private final EcgSignalsService ecgSignalsService;
     private final EntityManager entityManager;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Autowired
-    public ReportSubscriberService(FirebaseService firebaseService, ReportService reportService, ArrhythmiaReportRepo arrhythmiaReportRepo, ClassifierEndpointService classifierEndpointService, ReportPublisherService reportPublisherService, EcgSignalsService ecgSignalsService, EntityManager entityManager) {
+    public ReportSubscriberService(FirebaseService firebaseService, ReportService reportService, ArrhythmiaReportRepo arrhythmiaReportRepo, ClassifierEndpointService classifierEndpointService, ReportPublisherService reportPublisherService, EcgSignalsService ecgSignalsService, EntityManager entityManager, SimpMessagingTemplate messagingTemplate) {
         this.firebaseService = firebaseService;
         this.reportService = reportService;
         this.arrhythmiaReportRepo = arrhythmiaReportRepo;
@@ -45,16 +46,17 @@ public class ReportSubscriberService {
         this.reportPublisherService = reportPublisherService;
         this.ecgSignalsService = ecgSignalsService;
         this.entityManager = entityManager;
+        this.messagingTemplate = messagingTemplate;
     }
 
     @RabbitListener(queues = RabbitMQConfig.REPORT_QUEUE_NAME)
-    public void SubscribeReportQueue(UUID reportId) {
+    public void SubscribeReportQueue(ReportRequestDTO reportDTO) {
         try {
             Optional<ArrhythmiaReportModel> reportsOpt;
             ArrhythmiaReportModel report;
-            reportsOpt = arrhythmiaReportRepo.getReportById(reportId);
+            reportsOpt = arrhythmiaReportRepo.getReportById(UUID.fromString(reportDTO.getReportId()));
             if (reportsOpt.isEmpty()) {
-                log.error("Failed to find report: {}", reportId.toString());
+                log.error("Failed to find report: {}", reportDTO.getReportId());
                 return;
             } else {
                 report = reportsOpt.get();
@@ -83,14 +85,21 @@ public class ReportSubscriberService {
                 notificationReport = "Atrial Fibrillation";
             }
 
+            String topic = "/topic/notification";
+//            messagingTemplate.convertAndSend("/topic/notification", """
+//                    {
+//                    }
+//                    """);
+
             arrhythmiaReportRepo.save(report);
 
             // Call FCM
-            firebaseService.sendReportNotification("report", report.getUser(), notificationReport);
+            String result = firebaseService.sendReportNotification("report", report.getUser(), notificationReport);
+            log.info("Firebase: {}", result);
 
         } catch (Exception e) {
             e.printStackTrace();
-            log.error("Failed to save generate report: {}", reportId.toString());
+            log.error("Failed to save generate report: {}", reportDTO.getReportId());
         }
     }
 
@@ -114,16 +123,29 @@ public class ReportSubscriberService {
 
             arrhythmiaReportRepo.save(report);
 
-            if (report.getReportType() != ArrhythmiaReportModel.ReportType.Asystole
-                    && report.getReportType() != ArrhythmiaReportModel.ReportType.Bradycardia
+            if (report.getReportType() != ArrhythmiaReportModel.ReportType.Bradycardia
                     && report.getReportType() != ArrhythmiaReportModel.ReportType.Tachycardia
             ) {
-                reportPublisherService.PublishReportIdToBeClassified(UUID.fromString(saveSegmentDTO.getReportId()));
+                reportPublisherService.PublishReportIdToBeClassified(saveSegmentDTO.getReportId());
             }
 
 
         } catch (Exception e) {
             log.error("Failed to save generate report: {}", saveSegmentDTO.getReportId());
+        }
+    }
+
+    @RabbitListener(queues = RabbitMQConfig.NOTIF_QUEUE_NAME)
+    public void subscribeFirebaseNotif(FirebaseNotifReport firebaseNotifReport) {
+        try {
+            if (Objects.equals(firebaseNotifReport.getTopic(), "SOS")) {
+                firebaseService.sendSOSNotificationToTopic2(firebaseNotifReport.getUsername(), firebaseNotifReport.getUserId());
+            }
+            else {
+                firebaseService.sendReportNotification2(firebaseNotifReport.getUsername(), firebaseNotifReport.getUserId(), firebaseNotifReport.getReport());
+            }
+        } catch (Exception e) {
+            log.error("Failed to save send notif: {}", firebaseNotifReport.getUserId());
         }
     }
 
@@ -165,10 +187,10 @@ public class ReportSubscriberService {
 
     private ArrhythmiaReportModel.ReportType fromDiagnosis(String input) {
         return switch (input) {
-            case "normal" -> ArrhythmiaReportModel.ReportType.Normal;
-            case "afib" -> ArrhythmiaReportModel.ReportType.AFib;
-            case "vt" -> ArrhythmiaReportModel.ReportType.VT;
-            case "vf" -> ArrhythmiaReportModel.ReportType.VFib;
+            case "N" -> ArrhythmiaReportModel.ReportType.Normal;
+            case "AFIB" -> ArrhythmiaReportModel.ReportType.AFib;
+            case "VT" -> ArrhythmiaReportModel.ReportType.VT;
+            case "VF" -> ArrhythmiaReportModel.ReportType.VFib;
             default -> ArrhythmiaReportModel.ReportType.Unknown;
         };
     }

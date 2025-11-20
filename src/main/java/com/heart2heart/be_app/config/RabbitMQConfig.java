@@ -27,6 +27,10 @@ public class RabbitMQConfig {
     public static final String SAVE_SEGMENT_QUEUE_NAME = "save_segment_queue";
     public static final String SAVE_SEGMENT_ROUTING_KEY = "save.segment.new";
 
+    public static final String NOTIF_EXCHANGE_NAME = "notif_exchange";
+    public static final String NOTIF_QUEUE_NAME = "notif_queue";
+    public static final String NOTIF_ROUTING_KEY = "notif.new";
+
     @Bean
     public TopicExchange ecgExchange() {
         return new TopicExchange(ECG_EXCHANGE_NAME);
@@ -45,6 +49,11 @@ public class RabbitMQConfig {
     @Bean
     public TopicExchange saveSegmentExchange() {
         return new TopicExchange(SAVE_SEGMENT_EXCHANGE_NAME);
+    }
+
+    @Bean
+    public TopicExchange notifExchange() {
+        return new TopicExchange(NOTIF_EXCHANGE_NAME);
     }
 
     @Bean
@@ -68,6 +77,11 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    public Queue notifQueue() {
+        return new Queue(NOTIF_QUEUE_NAME, true); // durable=true
+    }
+
+    @Bean
     public Binding bindingECG(Queue ecgSignalsQueue, TopicExchange ecgExchange) {
         return BindingBuilder.bind(ecgSignalsQueue)
                 .to(ecgExchange)
@@ -79,6 +93,13 @@ public class RabbitMQConfig {
         return BindingBuilder.bind(bpmDataQueue)
                 .to(bpmExchange)
                 .with(BPM_ROUTING_KEY);
+    }
+
+    @Bean
+    public Binding bindingNotif(Queue notifQueue, TopicExchange notifExchange) {
+        return BindingBuilder.bind(notifQueue)
+                .to(notifExchange)
+                .with(NOTIF_ROUTING_KEY);
     }
 
     @Bean

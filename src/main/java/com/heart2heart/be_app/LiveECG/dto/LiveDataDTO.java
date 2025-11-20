@@ -6,5 +6,6 @@ import java.util.List;
 
 @Data
 public class LiveDataDTO {
-    private List<SignalDTO> ecgList;
+    private List<Float> ecgList;
+    private String start;
 }
