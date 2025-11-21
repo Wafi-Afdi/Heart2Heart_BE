@@ -90,7 +90,7 @@ public class ArrhythmiaReportController {
 
         SaveSegmentDTO saveSegmentPub = new SaveSegmentDTO();
         saveSegmentPub.setTs(diagnosisRequestDTO.getTs());
-        saveSegmentPub.setTotalSecondToSave(24);
+        saveSegmentPub.setTotalSecondToSave(6);
         saveSegmentPub.setReportId(savedReport.toString());
         saveSegmentPub.setUserId(user.getId().toString());
 
