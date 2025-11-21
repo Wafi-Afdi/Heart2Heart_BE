@@ -8,4 +8,5 @@ import java.util.List;
 public class LiveDataDTO {
     private List<Float> ecgList;
     private String start;
+    private Integer bpm;
 }
