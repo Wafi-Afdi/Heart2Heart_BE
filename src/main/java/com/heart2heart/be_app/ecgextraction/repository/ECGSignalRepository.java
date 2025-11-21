@@ -20,10 +20,10 @@ public interface ECGSignalRepository extends JpaRepository<ECGSignalModel, UUID>
             @Param("end") LocalDateTime end
     );
 
-    @Query(value = "SELECT * FROM ecg_signal_model e " +
+    @Query(value = "SELECT * FROM ecg_signal e " +
             "WHERE e.user_id = :userId " +
             "AND e.timestamp >= " +
-            "  (SELECT MAX(latest.timestamp) FROM ecg_signal_model latest WHERE latest.user_id = :userId) " +
+            "  (SELECT MAX(latest.timestamp) FROM ecg_signal latest WHERE latest.user_id = :userId) " +
             "  - (:seconds * INTERVAL '1' SECOND) " + // PostgreSQL/H2 compatible subtraction
             "ORDER BY e.timestamp ASC",
             nativeQuery = true)
