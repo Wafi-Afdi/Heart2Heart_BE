@@ -4,12 +4,15 @@ import com.heart2heart.be_app.ArrhythmiaReport.dto.*;
 import com.heart2heart.be_app.ArrhythmiaReport.model.ArrhythmiaReportModel;
 import com.heart2heart.be_app.ArrhythmiaReport.model.ECGSegment;
 import com.heart2heart.be_app.ArrhythmiaReport.repository.ArrhythmiaReportRepo;
+import com.heart2heart.be_app.LiveECG.dto.ArrhytmiaReportWsDTO;
 import com.heart2heart.be_app.auth.user.model.User;
 import com.heart2heart.be_app.auth.user.repository.UserRepository;
 import com.heart2heart.be_app.config.RabbitMQConfig;
 import com.heart2heart.be_app.ecgextraction.service.EcgSignalsService;
 import com.heart2heart.be_app.firebase.FirebaseService;
 import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
+import org.hibernate.Hibernate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -49,6 +52,7 @@ public class ReportSubscriberService {
         this.messagingTemplate = messagingTemplate;
     }
 
+    @Transactional
     @RabbitListener(queues = RabbitMQConfig.REPORT_QUEUE_NAME)
     public void SubscribeReportQueue(ReportRequestDTO reportDTO) {
         try {
@@ -75,31 +79,27 @@ public class ReportSubscriberService {
             // report.setReportType(ArrhythmiaReportModel.ReportType.AFib);
 
             String notificationReport = "Normal Rhythm";
-            if (report.getReportType() == ArrhythmiaReportModel.ReportType.Normal) {
-
-            } else if (report.getReportType() == ArrhythmiaReportModel.ReportType.VT) {
+            if (report.getReportType() == ArrhythmiaReportModel.ReportType.VT) {
                 notificationReport = "Ventricular Tachycardia";
             } else if (report.getReportType() == ArrhythmiaReportModel.ReportType.VFib) {
                 notificationReport = "Ventricular Fibrillation";
             } else if (report.getReportType() == ArrhythmiaReportModel.ReportType.AFib) {
                 notificationReport = "Atrial Fibrillation";
             }
+            Hibernate.initialize(report.getUser());
 
-            String topic = "/topic/notification";
-//            messagingTemplate.convertAndSend("/topic/notification", """
-//                    {
-//                    }
-//                    """);
+            var username = report.getUser().getName();
+            var userId = report.getId().toString();
 
             arrhythmiaReportRepo.save(report);
 
             // Call FCM
-            String result = firebaseService.sendReportNotification("report", report.getUser(), notificationReport);
+            String result = firebaseService.sendReportNotification2(username, userId, notificationReport);
             log.info("Firebase: {}", result);
 
         } catch (Exception e) {
             e.printStackTrace();
-            log.error("Failed to save generate report: {}", reportDTO.getReportId());
+            log.error("Failed to save generate report {}: {}", reportDTO.getReportId(), e.getMessage());
         }
     }
 
@@ -120,18 +120,22 @@ public class ReportSubscriberService {
 
             report.setSegment(ecgSignalsService.getECGSegment(user, LocalDateTime.parse(saveSegmentDTO.getTs()), saveSegmentDTO.getTotalSecondToSave()));
 
+            String reportId = saveSegmentDTO.getReportId();
+
 
             arrhythmiaReportRepo.save(report);
+
 
             if (report.getReportType() != ArrhythmiaReportModel.ReportType.Bradycardia
                     && report.getReportType() != ArrhythmiaReportModel.ReportType.Tachycardia
             ) {
-                reportPublisherService.PublishReportIdToBeClassified(saveSegmentDTO.getReportId());
+                reportPublisherService.PublishReportIdToBeClassified(reportId);
             }
 
 
+
         } catch (Exception e) {
-            log.error("Failed to save generate report: {}", saveSegmentDTO.getReportId());
+            log.error("Failed to save generate report {}: {}", saveSegmentDTO.getReportId(), e.getMessage());
         }
     }
 

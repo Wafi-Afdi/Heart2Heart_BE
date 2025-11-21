@@ -96,7 +96,7 @@ public class FirebaseService {
     }
 
     public String sendReportNotification2(String username, String userId, String report) throws FirebaseMessagingException {
-        String title = String.format("%s has been detected with %s", userId, report);
+        String title = String.format("%s has been detected with %s", username, report);
         String body = String.format("Please check on the person");
 
         Notification notification = Notification.builder()
