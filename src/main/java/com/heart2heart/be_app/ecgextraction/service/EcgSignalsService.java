@@ -40,7 +40,7 @@ public class EcgSignalsService {
         LocalDateTime endTime = ts;
         LocalDateTime startTime = ts.minusSeconds(totalSeconds);
         List<ECGSignalModel> rawSignals = ecgSignalRepository
-                .findECGRecordsWithRangeTime(user.getId(), startTime, endTime)
+                .findLatestCustomSecondsOfDataByUserId(user.getId(), totalSeconds)
                 .orElse(Collections.emptyList());
 
         ECGSegment segmentDTOs = new ECGSegment();
